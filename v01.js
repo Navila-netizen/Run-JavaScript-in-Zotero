@@ -7,7 +7,7 @@ return await (async () => {
     "Sleep": "b20f1c0d907bd4e6764cb7fbc4e501ce35579a987eba6fa6440f61cfe3309cfa",
     "Anki": "c093bf3b1a3cb843437461668cfb38edc1339cc5c93925289516f904df61a3bb"
   };
-  let VAULT = "AMM";
+  let VAULT = "";
   try {
     if (typeof prompt === 'function') {
       const choice = (prompt('Choose Obsidian vault ("AMM", "Sleep", or "Anki"): ', VAULT) || '').trim();
@@ -156,14 +156,6 @@ return await (async () => {
     obsidianByKey[k] = await searchObsidian(k);
   }
 
-  // Date tag in YYYY-MM-DD format
-  const ymd = new Date().toISOString().slice(0, 10);
-
-  // Format the plain-text mapping showing ONLY keys found in BOTH Obsidian and Zotero
-  // "Zotero filename": "file.pdf"
-  // 	"Obsidian filename": "file.md"
-  // 		KEY1
-  // 		KEY2
   const entries = Array.from(entriesById.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
   let output = "";
   for (const { label, keys: keySet, att } of entries) {
@@ -174,8 +166,10 @@ return await (async () => {
     const tagsToAdd = [];
 
     if (sortedKeys.length === 0) {
-      output += (output ? "\n\n" : "") + line1 + "\n" + "No annotation keys found." + `\n${ymd} No annotation keys found in ${VAULT}`;
-      tagsToAdd.push(`${ymd} No annotation keys found in ${VAULT}`);
+      output += (output ? "\n\n\n" : "") + line1 + "\n" + "No annotation keys found.";
+      // If output is non-empty (truthy), it adds "\n" to separate the previous content from what’s about to be appended; 
+      // If output is empty (falsy), it adds "" so the message doesn’t start with an unnecessary blank line.
+      tagsToAdd.push(`No annotation keys found`);
     } else {
       // Group keys under each Obsidian filename
       const obsidianToKeys = new Map();
@@ -188,22 +182,20 @@ return await (async () => {
       }
 
       if (obsidianToKeys.size === 0) {
-        output += (output ? "\n\n" : "") + line1 + "\n" + "No matching keys found." + `\n${ymd} No matching keys found in ${VAULT}`;
-        tagsToAdd.push(`${ymd} No matching keys found ${VAULT}`);
+        output += (output ? "\n" : "") + line1 + "\n" + "No matching keys found." + `\nNo matching keys found in VAULT ${VAULT}`;
+        tagsToAdd.push(`No matching keys found in VAULT ${VAULT}`);
       } else {
         const lines = [];
         const sortedNames = Array.from(obsidianToKeys.keys()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         for (const name of sortedNames) {
-          lines.push(`\t"Obsidian filename": "${name}"`);
           const klist = Array.from(obsidianToKeys.get(name)).sort();
-          for (const k of klist) {
-            lines.push(`\t\t  ${k}`);
-          }
-          const tag = `${ymd} ${klist.length} matching key${klist.length === 1 ? '' : 's'} found in "${name}" in ${VAULT}`;
-          lines.push(`\t\t  ${tag}`);
+          const tag = `${klist.length} matching key${klist.length === 1 ? '' : 's'} found in "${name}" in VAULT ${VAULT}`;
+          lines.push(`\t"Obsidian filename": "${name}"`);
+          lines.push(`\t${tag}`);
           tagsToAdd.push(tag);
-          
-
+          for (const k of klist) {
+            lines.push(`\t\t${k}`);
+          }
         }
         const block = [line1, ...lines].join("\n");
         output += (output ? "\n\n" : "") + block;
@@ -236,5 +228,5 @@ return await (async () => {
     }
   }
 
-  return output || `No annotation keys found.\n${ymd} No annotation keys found in ${VAULT}`;
+  return output || `No annotation keys found.`;
 })();
